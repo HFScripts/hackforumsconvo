@@ -12,6 +12,7 @@
 // ==/UserScript==
 
 var unread_messages = 0;
+var iframe;
 
 function playNotificationSound() {
   const audioElement = new Audio('https://hackforums.net/sounds/convo-blip.mp3');
@@ -22,6 +23,9 @@ function toggleChatWindow() {
   const chatWindow = document.getElementById('chat-window');
   chatWindow.classList.toggle('open');
   chatWindow.style.display = chatWindow.classList.contains('open') ? 'block' : 'none';
+  if(chatWindow.style.display === 'block') {
+    iframe.src = 'https://hackforums.net/convo.php?rand=' + Math.random(); // force iframe to reload
+  }
   chatButton.classList.remove('pulse');
 }
 
@@ -57,15 +61,19 @@ if (!window.location.href.includes('convo.php')) {
     padding: 10px;
     border: 1px solid #4d2f5d;
     overflow-y: auto;
+    z-index: 10000; // add z-index here
   `;
 
-  const iframe = document.createElement('iframe');
+  iframe = document.createElement('iframe');
   iframe.src = 'https://hackforums.net/convo.php';
-  iframe.style.cssText = 'width: 100%; height: calc(100% - 20px); border: none; z-index: 10000;'; // add z-index here
+  iframe.style.cssText = 'width: 100%; height: calc(100% - 20px); border: none; z-index: 10001;'; // add z-index here
 
   iframe.addEventListener('load', () => {
     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
     iframeDoc.documentElement.scrollTop = iframeDoc.documentElement.scrollHeight;
+
+    // Flag to know if it is the initial load
+    let initialLoad = true;
 
     // Select the node that will be observed for mutations
     const targetNode = iframeDoc.getElementById('message-container');
@@ -79,13 +87,21 @@ if (!window.location.href.includes('convo.php')) {
         if (mutation.type === 'childList') {
           for(let node of mutation.addedNodes) {
             if(node.nodeType === Node.ELEMENT_NODE && (node.classList.contains('message-convo-left') || node.querySelector('.message-convo-left'))) {
-              chatButton.classList.add('pulse');
-              playNotificationSound();
+              // Ignore the mutation events of the initial load
+              if (!initialLoad) {
+                // Do not notify if the chat window is already open
+                if (!chatWindow.classList.contains('open')) {
+                  chatButton.classList.add('pulse');
+                  playNotificationSound();
+                }
+              }
               break;
             }
           }
         }
       }
+      // After processing all the messages of the initial load, unset the flag
+      initialLoad = false;
     };
 
     // Create an observer instance linked to the callback function
