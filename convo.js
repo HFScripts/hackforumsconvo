@@ -92,7 +92,7 @@ if (!window.location.href.includes('convo.php')) {
                 // Do not notify if the chat window is already open
                 if (!chatWindow.classList.contains('open')) {
                   chatButton.classList.add('pulse');
-                  playNotificationSound();
+                  //playNotificationSound();
                 }
               }
               break;
